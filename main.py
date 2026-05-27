@@ -1,29 +1,32 @@
-import cv2 as cv
+import os
+import cv2
+import torch
+import numpy as np
 
-from detection.face_mesh import process_face_mesh
-from detection.blink_detector import calculate_ear
-from anti_spoof.liveness import detect_blink
-from detection.head_pose import estimate_head_pose
-
-import anti_spoof.liveness as liveness
+from src.anti_spoof_predict import AntiSpoofPredict
+from src.generate_patches import CropImage
+from src.utility import parse_model_name
 
 from recognition.recognize import (
     load_known_faces,
     recognize_face
 )
 
-# ---------------- LOAD DATABASE FACES ---------------- #
+# ---------------- LOAD RECOGNITION DATABASE ---------------- #
 
 known_faces = load_known_faces()
 
+# ---------------- LOAD ANTI SPOOF MODELS ---------------- #
+
+model_dir = "resources/anti_spoof_models"
+
+model_test = AntiSpoofPredict(0)
+
+image_cropper = CropImage()
+
 # ---------------- CAMERA ---------------- #
 
-capture = cv.VideoCapture(0)
-
-capture.set(cv.CAP_PROP_FRAME_WIDTH, 640)
-capture.set(cv.CAP_PROP_FRAME_HEIGHT, 480)
-
-# ---------------- STATES ---------------- #
+cap = cv2.VideoCapture(0)
 
 attendance_marked = False
 
@@ -31,232 +34,250 @@ recognized_name = "Unknown"
 recognized_id = "N/A"
 attendance_status = ""
 
-# ---------------- LOOP ---------------- #
+stable_name = ""
+stable_count = 0
 
-frame_counter = 0
+REQUIRED_FRAMES = 3
+
+# ---------------- MAIN LOOP ---------------- #
 
 while True:
-    frame_counter += 1
 
-    if frame_counter % 2 != 0:
-        continue
+    ret, frame = cap.read()
 
-    isTrue, frame = capture.read()
-
-    if not isTrue:
+    if not ret:
         break
 
-    frame = cv.flip(frame, 1)
+    frame = cv2.flip(frame, 1)
 
-    rgb_frame = cv.cvtColor(
-        frame,
-        cv.COLOR_BGR2RGB
+    try:
+
+        # ---------------- FACE BOUNDING BOX ---------------- #
+
+        image_bbox = model_test.get_bbox(frame)
+        x, y, w, h = image_bbox
+
+        x1 = x
+        y1 = y
+        x2 = x + w
+        y2 = y + h
+
+        line_length = 25
+        thickness = 2
+        color = (0,255,0)
+
+        # TOP LEFT
+        cv2.line(frame, (x1,y1), (x1+line_length,y1), color, thickness)
+        cv2.line(frame, (x1,y1), (x1,y1+line_length), color, thickness)
+
+        # TOP RIGHT
+        cv2.line(frame, (x2,y1), (x2-line_length,y1), color, thickness)
+        cv2.line(frame, (x2,y1), (x2,y1+line_length), color, thickness)
+
+        # BOTTOM LEFT
+        cv2.line(frame, (x1,y2), (x1+line_length,y2), color, thickness)
+        cv2.line(frame, (x1,y2), (x1,y2-line_length), color, thickness)
+
+        # BOTTOM RIGHT
+        cv2.line(frame, (x2,y2), (x2-line_length,y2), color, thickness)
+        cv2.line(frame, (x2,y2), (x2,y2-line_length), color, thickness)
+
+        prediction = torch.zeros((1, 3))
+
+        # ---------------- ANTI SPOOF PREDICTION ---------------- #
+
+        for model_name in os.listdir(model_dir):
+
+            h_input, w_input, model_type, scale = parse_model_name(
+                model_name
+            )
+
+            param = {
+                "org_img": frame,
+                "bbox": image_bbox,
+                "scale": scale,
+                "out_w": w_input,
+                "out_h": h_input,
+                "crop": True,
+            }
+
+            img = image_cropper.crop(**param)
+
+            prediction += model_test.predict(
+                img,
+                os.path.join(model_dir, model_name)
+            )
+
+        label = torch.argmax(prediction).item()
+
+        # ---------------- REAL FACE ---------------- #
+
+        if label == 1:
+
+            anti_spoof_text = "REAL FACE"
+            anti_spoof_color = (0,255,0)
+
+            # ---------- FACE RECOGNITION ---------- #
+
+            if not attendance_marked:
+
+                temp_name, temp_id, temp_status = recognize_face(
+                    frame,
+                    known_faces
+                )
+
+                # ---------- STABILIZATION ---------- #
+
+                if temp_name == stable_name:
+
+                    stable_count += 1
+
+                elif temp_name != "Unknown":
+
+                    stable_name = temp_name
+                    stable_count = 1
+
+                # ---------- CONFIRM RECOGNITION ---------- #
+
+                if stable_count >= REQUIRED_FRAMES:
+
+                    recognized_name = temp_name
+                    recognized_id = temp_id
+                    attendance_status = temp_status
+
+                    if recognized_name != "Unknown":
+
+                        attendance_marked = True
+
+                # ---------- STILL SCANNING ---------- #
+
+                if stable_count < REQUIRED_FRAMES:
+
+                    recognized_name = "SCANNING..."
+                    recognized_id = "..."
+
+
+        # ---------------- FAKE FACE ---------------- #
+
+        else:
+
+            anti_spoof_text = "FAKE FACE"
+            anti_spoof_color = (0,0,255)
+
+            recognized_name = "Unknown"
+            recognized_id = "N/A"
+            attendance_status = ""
+
+            attendance_marked = False
+
+    except Exception as e:
+
+        anti_spoof_text = "NO FACE DETECTED"
+        anti_spoof_color = (0,165,255)
+
+        recognized_name = "Unknown"
+        recognized_id = "N/A"
+        attendance_status = ""
+
+        print("Error:", e)
+
+    # ---------------- DISPLAY ---------------- #
+
+    # ---------------- CREATE UI PANEL ---------------- #
+
+    panel_height = 140
+
+    panel = np.zeros(
+        (panel_height, frame.shape[1], 3),
+        dtype=np.uint8
     )
 
-    results = process_face_mesh(rgb_frame)
+    # ---------------- GLASS EFFECT ---------------- #
 
-    if results.multi_face_landmarks:
+    overlay = frame.copy()
 
-        for face_landmarks in results.multi_face_landmarks:
+    cv2.rectangle(
+        overlay,
+        (0, frame.shape[0] - 160),
+        (frame.shape[1], frame.shape[0]),
+        (40,40,40),
+        -1
+    )
 
-            h, w, c = frame.shape
+    alpha = 0.35
 
-            # ---------------- EAR ---------------- #
+    frame = cv2.addWeighted(
+        overlay,
+        alpha,
+        frame,
+        1 - alpha,
+        0
+    )
+    # ---------------- STATUS COLOR ---------------- #
 
-            ear, eye_points = calculate_ear(
-                face_landmarks,
-                w,
-                h
-            )
+    status_color = anti_spoof_color
 
-            # ---------------- DRAW EYE POINTS ---------------- #
 
-            for point in eye_points:
+    # ---------------- STATUS ---------------- #
 
-                cv.circle(
-                    frame,
-                    point,
-                    3,
-                    (0,255,0),
-                    -1
-                )
+    cv2.putText(
+       frame,
+        f"STATUS : {anti_spoof_text}",
+        (40, frame.shape[0] - 120),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.75,
+        status_color,
+        2
+    )
 
-            # ---------------- BLINK ---------------- #
+    # ---------------- NAME ---------------- #
 
-            blink_count, new_blink = detect_blink(ear)
+    cv2.putText(
+        frame,
+        f"NAME : {recognized_name}",
+        (40, frame.shape[0] - 85),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.65,
+        (255,255,255),
+        2
+    )
 
-            # ---------------- HEAD POSE ---------------- #
+    # ---------------- ID ---------------- #
 
-            x_angle, y_angle, z_angle = estimate_head_pose(
-                face_landmarks,
-                w,
-                h
-            )
+    cv2.putText(
+        frame,
+        f"ID : {recognized_id}",
+        (40, frame.shape[0] - 50),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.65,
+        (255,255,255),
+        2
+    )
 
-            # ---------------- HEAD DIRECTION ---------------- #
+    # ---------------- ATTENDANCE ---------------- #
 
-            head_direction = "Forward"
-
-            if y_angle < -10:
-
-                head_direction = "Looking Left"
-
-            elif y_angle > 10:
-
-                head_direction = "Looking Right"
-
-            elif x_angle < -10:
-
-                head_direction = "Looking Down"
-
-            elif x_angle > 10:
-
-                head_direction = "Looking Up"
-
-            # ---------------- CHALLENGE ---------------- #
-
-            current_challenge = liveness.verify_challenge(
-                new_blink,
-                head_direction
-            )
-
-            # ---------------- CHALLENGE TEXT ---------------- #
-
-            if liveness.verification_complete:
-
-                challenge_text = "COMPLETED"
-
-            else:
-
-                challenge_text = current_challenge
-
-            # ---------------- DISPLAY LIVE DATA ---------------- #
-
-            if not liveness.verification_complete:
-
-                cv.putText(
-                    frame,
-                    f"EAR: {ear:.2f}",
-                    (30, 50),
-                    cv.FONT_HERSHEY_SIMPLEX,
-                    1,
-                    (0,255,0),
-                    2
-                )
-
-                cv.putText(
-                    frame,
-                    f"Blinks: {blink_count}",
-                    (30, 100),
-                    cv.FONT_HERSHEY_SIMPLEX,
-                    1,
-                    (0,255,0),
-                    2
-                )
-
-                cv.putText(
-                    frame,
-                    head_direction,
-                    (30, 150),
-                    cv.FONT_HERSHEY_SIMPLEX,
-                    1,
-                    (0,255,0),
-                    2
-                )
-
-                cv.putText(
-                    frame,
-                    f"Challenge: {challenge_text}",
-                    (30, 250),
-                    cv.FONT_HERSHEY_SIMPLEX,
-                    1,
-                    (0,255,255),
-                    2
-                )
-
-            # ---------------- VERIFICATION COMPLETE ---------------- #
-
-            if liveness.verification_complete:
-
-                cv.putText(
-                    frame,
-                    "VERIFICATION SUCCESSFUL",
-                    (30, 250),
-                    cv.FONT_HERSHEY_SIMPLEX,
-                    1,
-                    (0,255,0),
-                    3
-                )
-
-                cv.putText(
-                    frame,
-                    "Scanning Face...",
-                    (30, 310),
-                    cv.FONT_HERSHEY_SIMPLEX,
-                    1,
-                    (0,255,255),
-                    2
-                )
-
-                # ---------- RECOGNIZE ONLY ONCE ---------- #
-
-                if not attendance_marked:
-
-                    recognized_name, recognized_id, attendance_status = recognize_face(
-                        frame,
-                        known_faces
-                    )
-
-                    attendance_marked = True
-
-            # ---------------- DISPLAY RECOGNITION ---------------- #
-
-            if attendance_marked:
-
-                cv.putText(
-                    frame,
-                    f"Name: {recognized_name}",
-                    (30, 380),
-                    cv.FONT_HERSHEY_SIMPLEX,
-                    1,
-                    (0,255,0),
-                    2
-                )
-
-                cv.putText(
-                    frame,
-                    f"ID: {recognized_id}",
-                    (30, 430),
-                    cv.FONT_HERSHEY_SIMPLEX,
-                    1,
-                    (0,255,0),
-                    2
-                )
-
-                cv.putText(
-                    frame,
-                    attendance_status,
-                    (30, 480),
-                    cv.FONT_HERSHEY_SIMPLEX,
-                    1,
-                    (0,255,255),
-                    2
-                )
+    cv2.putText(
+        frame,
+        f"ATTENDANCE : {attendance_status}",
+        (40, frame.shape[0] - 15),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.65,
+        (0,255,255),
+        2
+    )
 
     # ---------------- SHOW WINDOW ---------------- #
 
-    cv.imshow(
+    cv2.imshow(
         "AI Attendance System",
         frame
     )
 
-    # ---------------- EXIT ---------------- #
-
-    if cv.waitKey(1) & 0xFF == ord('d'):
+    if cv2.waitKey(1) & 0xFF == ord('d'):
         break
 
 # ---------------- CLEANUP ---------------- #
 
-capture.release()
+cap.release()
 
-cv.destroyAllWindows()
+cv2.destroyAllWindows()

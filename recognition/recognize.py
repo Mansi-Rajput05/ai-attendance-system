@@ -4,7 +4,7 @@ import numpy as np
 from recognition.embeddings import get_face_embedding
 from database.attendance_logger import mark_attendance
 
-SIMILARITY_THRESHOLD = 0.8
+SIMILARITY_THRESHOLD = 0.7
 
 
 def load_known_faces():
@@ -51,9 +51,6 @@ def recognize_face(frame, known_faces):
 
     embedding = get_face_embedding(frame)
     embedding = embedding / np.linalg.norm(embedding)
-
-    print("Current embedding:")
-    print(embedding)
     
     recognized_name = "Unknown"
     recognized_id = "N/A"
@@ -68,7 +65,6 @@ def recognize_face(frame, known_faces):
             distance = np.linalg.norm(
                 embedding - stored_embedding
             )
-            print("Distance:", distance)
 
             if distance < best_similarity:
 
@@ -76,8 +72,6 @@ def recognize_face(frame, known_faces):
 
                 recognized_name = stored_name
                 recognized_id = stored_id
-
-        print("Best similarity:", best_similarity)
 
         # ---------- UNKNOWN CHECK ---------- #
 

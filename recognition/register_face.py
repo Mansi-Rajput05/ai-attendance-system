@@ -1,7 +1,14 @@
-import cv2 as cv
+import os
+import cv2
+import torch
 import sqlite3
 import numpy as np
 
+from src.anti_spoof_predict import AntiSpoofPredict
+from src.generate_patches import CropImage
+from src.utility import parse_model_name
+
+from recognition.embeddings import get_face_embedding
 
 # ---------------- DATABASE ---------------- #
 
@@ -13,24 +20,15 @@ cursor = connection.cursor()
 
 # ---------------- INPUT ---------------- #
 
-print("\n========== FACE REGISTRATION ==========\n")
-
 name = input("Enter your name: ")
 
 # ---------- UNIQUE ID CHECK ---------- #
 
 while True:
 
-    try:
-
-        student_id = int(
-            input("Enter Student ID: ")
-        )
-
-    except ValueError:
-
-        print("Please enter numeric ID")
-        continue
+    student_id = int(
+        input("Enter Student ID: ")
+    )
 
     cursor.execute(
         "SELECT * FROM users WHERE student_id = ?",
@@ -48,225 +46,253 @@ while True:
         print("ID already exists")
         print("Please enter another ID")
 
+# ---------------- LOAD ANTI SPOOF ---------------- #
 
-from recognition.embeddings import get_face_embedding
+model_dir = "resources/anti_spoof_models"
 
-from detection.face_mesh import process_face_mesh
-from detection.blink_detector import calculate_ear
-from detection.head_pose import estimate_head_pose
+model_test = AntiSpoofPredict(0)
 
-import anti_spoof.liveness as liveness
-
+image_cropper = CropImage()
 
 # ---------------- CAMERA ---------------- #
 
-capture = cv.VideoCapture(0)
+cap = cv2.VideoCapture(0)
 
-capture.set(cv.CAP_PROP_FRAME_WIDTH, 640)
-capture.set(cv.CAP_PROP_FRAME_HEIGHT, 480)
-
-registration_complete = False
-success_message = ""
-
-frame_counter = 0
+# ---------------- MAIN LOOP ---------------- #
 
 while True:
 
-    frame_counter += 1
+    ret, frame = cap.read()
 
-    if frame_counter % 2 != 0:
-        continue
-
-    isTrue, frame = capture.read()
-
-    if not isTrue:
+    if not ret:
         break
 
-    frame = cv.flip(frame, 1)
+    frame = cv2.flip(frame, 1)
 
-    rgb_frame = cv.cvtColor(
+    anti_spoof_text = "CHECKING..."
+    anti_spoof_color = (0,165,255)
+
+    real_face = False
+
+    try:
+
+        # ---------------- FACE BOUNDING BOX ---------------- #
+
+        image_bbox = model_test.get_bbox(frame)
+
+        x, y, w, h = image_bbox
+
+        x1 = x
+        y1 = y
+        x2 = x + w
+        y2 = y + h
+
+        # ---------------- MODERN FACE BOX ---------------- #
+
+        line_length = 25
+        thickness = 2
+        color = (0,255,0)
+
+        # TOP LEFT
+        cv2.line(frame, (x1,y1), (x1+line_length,y1), color, thickness)
+        cv2.line(frame, (x1,y1), (x1,y1+line_length), color, thickness)
+
+        # TOP RIGHT
+        cv2.line(frame, (x2,y1), (x2-line_length,y1), color, thickness)
+        cv2.line(frame, (x2,y1), (x2,y1+line_length), color, thickness)
+
+        # BOTTOM LEFT
+        cv2.line(frame, (x1,y2), (x1+line_length,y2), color, thickness)
+        cv2.line(frame, (x1,y2), (x1,y2-line_length), color, thickness)
+
+        # BOTTOM RIGHT
+        cv2.line(frame, (x2,y2), (x2-line_length,y2), color, thickness)
+        cv2.line(frame, (x2,y2), (x2,y2-line_length), color, thickness)
+
+        prediction = torch.zeros((1, 3))
+
+        # ---------------- ANTI SPOOF PREDICTION ---------------- #
+
+        for model_name in os.listdir(model_dir):
+
+            h_input, w_input, model_type, scale = parse_model_name(
+                model_name
+            )
+
+            param = {
+                "org_img": frame,
+                "bbox": image_bbox,
+                "scale": scale,
+                "out_w": w_input,
+                "out_h": h_input,
+                "crop": True,
+            }
+
+            img = image_cropper.crop(**param)
+
+            prediction += model_test.predict(
+                img,
+                os.path.join(model_dir, model_name)
+            )
+
+        label = torch.argmax(prediction).item()
+
+        # ---------------- REAL FACE ---------------- #
+
+        if label == 1:
+
+            anti_spoof_text = "REAL FACE"
+            anti_spoof_color = (0,255,0)
+
+            real_face = True
+
+        # ---------------- FAKE FACE ---------------- #
+
+        else:
+
+            anti_spoof_text = "FAKE FACE"
+            anti_spoof_color = (0,0,255)
+
+            real_face = False
+
+    except Exception as e:
+
+        anti_spoof_text = "NO FACE DETECTED"
+        anti_spoof_color = (0,165,255)
+
+        print("Error:", e)
+
+    # ---------------- GLASS EFFECT PANEL ---------------- #
+
+    overlay = frame.copy()
+
+    cv2.rectangle(
+        overlay,
+        (0, frame.shape[0] - 160),
+        (frame.shape[1], frame.shape[0]),
+        (40,40,40),
+        -1
+    )
+
+    alpha = 0.35
+
+    frame = cv2.addWeighted(
+        overlay,
+        alpha,
         frame,
-        cv.COLOR_BGR2RGB
+        1 - alpha,
+        0
     )
 
-    results = process_face_mesh(rgb_frame)
+    # ---------------- STATUS ---------------- #
 
-    if results.multi_face_landmarks:
-
-        for face_landmarks in results.multi_face_landmarks:
-
-            h, w, c = frame.shape
-
-            # ---------- EAR ---------- #
-
-            ear, eye_points = calculate_ear(
-                face_landmarks,
-                w,
-                h
-            )
-
-            # ---------- DRAW EYE POINTS ---------- #
-
-            for point in eye_points:
-
-                cv.circle(
-                    frame,
-                    point,
-                    3,
-                    (0,255,0),
-                    -1
-                )
-
-            # ---------- HEAD POSE ---------- #
-
-            x_angle, y_angle, z_angle = estimate_head_pose(
-                face_landmarks,
-                w,
-                h
-            )
-
-            # ---------- HEAD DIRECTION ---------- #
-
-            head_direction = "Forward"
-
-            if y_angle < -10:
-
-                head_direction = "Looking Left"
-
-            elif y_angle > 10:
-
-                head_direction = "Looking Right"
-
-            elif x_angle < -10:
-
-                head_direction = "Looking Down"
-
-            elif x_angle > 10:
-
-                head_direction = "Looking Up"
-
-            # ---------- VERIFY CHALLENGE ---------- #
-
-            current_challenge = liveness.verify_challenge(
-                ear,
-                head_direction
-            )
-
-            # ---------- DISPLAY ---------- #
-
-            cv.putText(
-                frame,
-                f"Challenge: {current_challenge}",
-                (30, 50),
-                cv.FONT_HERSHEY_SIMPLEX,
-                1,
-                (0,255,255),
-                2
-            )
-
-            cv.putText(
-                frame,
-                head_direction,
-                (30, 100),
-                cv.FONT_HERSHEY_SIMPLEX,
-                1,
-                (0,255,0),
-                2
-            )
-
-            # ---------- VERIFIED ---------- #
-
-            if liveness.verification_complete:
-
-                cv.putText(
-                    frame,
-                    "VERIFIED",
-                    (30, 170),
-                    cv.FONT_HERSHEY_SIMPLEX,
-                    1.5,
-                    (0,255,0),
-                    3
-                )
-
-                cv.putText(
-                    frame,
-                    "Press S to Save Face",
-                    (30, 240),
-                    cv.FONT_HERSHEY_SIMPLEX,
-                    1,
-                    (0,255,255),
-                    2
-                )
-
-                key = cv.waitKey(1)
-
-                # ---------- SAVE FACE ---------- #
-
-                if key == ord('s'):
-                    embedding = get_face_embedding(frame)
-                    embedding = embedding / np.linalg.norm(embedding)
-
-                    if embedding is not None:
-
-                        embedding_bytes = embedding.tobytes()
-
-                        cursor.execute(
-                            """
-
-                            INSERT INTO users
-                            (student_id, name, embedding)
-
-                            VALUES (?, ?, ?)
-
-                            """,
-                            (
-                                student_id,
-                                name,
-                                embedding_bytes
-                            )
-                        )
-
-                        connection.commit()
-
-                        success_message = "Face Registered Successfully"
-
-                        print(success_message)
-    
-                        registration_complete = True
-
-                        break
-
-                    else:
-
-                        print("No face detected")
-
-        # ---------- OUTER LOOP BREAK ---------- #
-
-        if registration_complete:
-            break
-    
-    cv.putText(
-    frame,
-    success_message,
-    (30, 320),
-    cv.FONT_HERSHEY_SIMPLEX,
-    1,
-    (0,255,0),
-    2
+    cv2.putText(
+        frame,
+        f"STATUS : {anti_spoof_text}",
+        (40, frame.shape[0] - 120),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.75,
+        anti_spoof_color,
+        2
     )
 
-    cv.imshow(
+    # ---------------- NAME ---------------- #
+
+    cv2.putText(
+        frame,
+        f"NAME : {name}",
+        (40, frame.shape[0] - 85),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.65,
+        (255,255,255),
+        2
+    )
+
+    # ---------------- ID ---------------- #
+
+    cv2.putText(
+        frame,
+        f"ID : {student_id}",
+        (40, frame.shape[0] - 50),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.65,
+        (255,255,255),
+        2
+    )
+
+    # ---------------- INSTRUCTION ---------------- #
+
+    cv2.putText(
+        frame,
+        "PRESS S TO REGISTER",
+        (40, frame.shape[0] - 15),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.65,
+        (0,255,255),
+        2
+    )
+
+    # ---------------- SHOW WINDOW ---------------- #
+
+    cv2.imshow(
         "Secure Face Registration",
         frame
     )
 
-    if cv.waitKey(1) & 0xFF == ord('d'):
-        break
+    key = cv2.waitKey(1)
+
+    # ---------------- SAVE FACE ---------------- #
+
+    if key == ord('s'):
+
+        if real_face:
+
+            embedding = get_face_embedding(frame)
+
+            if embedding is not None:
+
+                # ---------- NORMALIZE ---------- #
+
+                embedding = embedding / np.linalg.norm(
+                    embedding
+                )
+
+                embedding_bytes = embedding.tobytes()
+
+                cursor.execute(
+                    """
+
+                    INSERT INTO users
+                    (student_id, name, embedding)
+
+                    VALUES (?, ?, ?)
+
+                    """,
+                    (
+                        student_id,
+                        name,
+                        embedding_bytes
+                    )
+                )
+
+                connection.commit()
+
+                print("Face Registered Successfully")
+
+                break
+
+            else:
+
+                print("Face embedding failed")
+
+        else:
+
+            print("Registration blocked: Fake face detected")
 
 # ---------------- CLEANUP ---------------- #
 
 connection.close()
 
-capture.release()
+cap.release()
 
-cv.destroyAllWindows()
+cv2.destroyAllWindows()
