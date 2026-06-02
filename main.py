@@ -37,7 +37,7 @@ attendance_status = ""
 stable_name = ""
 stable_count = 0
 
-REQUIRED_FRAMES = 3
+REQUIRED_FRAMES = 5
 
 # ---------------- MAIN LOOP ---------------- #
 
@@ -273,7 +273,7 @@ while True:
         frame
     )
 
-    if cv2.waitKey(1) & 0xFF == ord('d'):
+    if cv2.waitKey(1) & 0xFF == ord('d') :
         break
 
 # ---------------- CLEANUP ---------------- #
