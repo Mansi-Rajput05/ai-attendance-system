@@ -29,7 +29,7 @@ export type RegisterResponse = {
 };
 
 async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`/api/recognition${path}`, {
+  const response = await fetch(path, {
     ...init,
     headers: {
       "Content-Type": "application/json",
@@ -38,43 +38,52 @@ async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new Error(`Recognition API failed with ${response.status}`);
+    let message = `Recognition API failed with ${response.status}`;
+
+    try {
+      const payload = await response.json();
+      message = payload?.message || payload?.error || payload?.detail || message;
+    } catch {
+      // Keep the status-based fallback when the backend does not return JSON.
+    }
+
+    throw new Error(Array.isArray(message) ? JSON.stringify(message) : String(message));
   }
 
   return response.json() as Promise<T>;
 }
 
 export function getDashboardStats() {
-  return apiRequest<DashboardStats>("/dashboard-stats");
+  return apiRequest<DashboardStats>("/api/dashboard-stats");
 }
 
 export function recognizeFrames(frames: string[]) {
-  return apiRequest<RecognitionResponse>("/recognize", {
+  return apiRequest<RecognitionResponse>("/api/recognize", {
     method: "POST",
     body: JSON.stringify({ frames }),
   });
 }
 
 export function registerStudent(studentId: number, name: string, frames: string[]) {
-  return apiRequest<RegisterResponse>("/register", {
+  return apiRequest<RegisterResponse>("/api/students", {
     method: "POST",
-    body: JSON.stringify({ student_id: studentId, name, frames }),
+    body: JSON.stringify({ studentId, name, frames }),
   });
 }
 
 export function getStudents() {
-  return apiRequest<Student[]>("/students");
+  return apiRequest<Student[]>("/api/students");
 }
 
 export function updateStudent(studentId: number, name: string) {
-  return apiRequest<{ status: string }>(`/students/${studentId}`, {
+  return apiRequest<{ status: string }>(`/api/students/${studentId}`, {
     method: "PUT",
     body: JSON.stringify({ name }),
   });
 }
 
 export function deleteStudent(studentId: number) {
-  return apiRequest<{ status: string }>(`/students/${studentId}`, {
+  return apiRequest<{ status: string }>(`/api/students/${studentId}`, {
     method: "DELETE",
   });
 }
@@ -92,9 +101,9 @@ export function getAttendance(filters: { studentId?: string; date?: string }) {
 
   const query = params.toString();
 
-  return apiRequest<AttendanceRecord[]>(`/attendance${query ? `?${query}` : ""}`);
+  return apiRequest<AttendanceRecord[]>(`/api/attendance${query ? `?${query}` : ""}`);
 }
 
 export function attendanceDownloadUrl() {
-  return "/api/recognition/download-attendance";
+  return "/api/attendance/export";
 }

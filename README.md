@@ -1,6 +1,6 @@
-# AI Attendance System
+# FaceTrace AI
 
-Modern face recognition attendance system split into a Next.js App Router frontend and a FastAPI recognition backend.
+Modern AI face recognition attendance system split into a Next.js App Router frontend and a FastAPI recognition backend.
 
 ## Structure
 
@@ -55,6 +55,19 @@ Local backend run:
 cd recognition-api
 pip install -r requirements.txt
 uvicorn api:app --reload
+```
+
+On Windows PowerShell, use the included runner so `uvicorn` does not need to be installed globally:
+
+```powershell
+cd recognition-api
+powershell -ExecutionPolicy Bypass -File .\run-server.ps1
+```
+
+After the first run, you can skip dependency installation:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\run-server.ps1 -SkipInstall
 ```
 
 ## Notes

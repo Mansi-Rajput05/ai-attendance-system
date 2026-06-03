@@ -258,9 +258,17 @@ def get_student(student_id: int):
         "name": student[1]
     }
 
+class Candidate(BaseModel):
+
+    studentId: str
+    name: str
+    embedding: list[float]
+
+
 class ScanRequest(BaseModel):
 
     frames: list[str]
+    candidates: Optional[list[Candidate]] = None
 
 @app.post("/recognize")
 def recognize(request: ScanRequest):
@@ -343,7 +351,98 @@ def recognize(request: ScanRequest):
             "status": "NO_FACE_DETECTED"
         }
 
-    # ---------- RECOGNITION ---------- #
+    # ---------- FAST CANDIDATE RECOGNITION ---------- #
+
+    if request.candidates:
+
+        start = time.time()
+
+        embedding = get_face_embedding(
+            middle_frame
+        )
+
+        if embedding is None:
+
+            return {
+                "status": "NO_FACE_DETECTED"
+            }
+
+        embedding = embedding / np.linalg.norm(
+            embedding
+        )
+
+        valid_candidates = []
+        stored_embeddings = []
+
+        for candidate in request.candidates:
+
+            stored = np.array(
+                candidate.embedding,
+                dtype=np.float32
+            )
+
+            stored_norm = np.linalg.norm(
+                stored
+            )
+
+            if stored_norm == 0:
+
+                continue
+
+            valid_candidates.append(
+                candidate
+            )
+
+            stored_embeddings.append(
+                stored / stored_norm
+            )
+
+        if len(stored_embeddings) == 0:
+
+            return {
+                "status": "UNKNOWN_FACE",
+                "distance": float("inf")
+            }
+
+        distances = np.linalg.norm(
+            np.vstack(stored_embeddings) - embedding,
+            axis=1
+        )
+
+        best_index = int(
+            np.argmin(distances)
+        )
+
+        best_distance = float(
+            distances[best_index]
+        )
+
+        best_candidate = valid_candidates[
+            best_index
+        ]
+
+        print(
+            "Candidate Recognition Time:",
+            round(time.time() - start, 2),
+            "sec"
+        )
+
+        if best_distance > 0.7:
+
+            return {
+                "status": "UNKNOWN_FACE",
+                "distance": best_distance
+            }
+
+        return {
+            "status": "REAL_FACE",
+            "studentId": best_candidate.studentId,
+            "student_id": best_candidate.studentId,
+            "name": best_candidate.name,
+            "distance": best_distance
+        }
+
+    # ---------- SQLITE FALLBACK RECOGNITION ---------- #
     start = time.time()
 
     recognized_name, recognized_id, attendance_status = recognize_face(
@@ -378,8 +477,9 @@ def recognize(request: ScanRequest):
 
 class RegisterRequest(BaseModel):
 
-    student_id: int
-    name: str
+    student_id: Optional[int] = None
+    studentId: Optional[int] = None
+    name: Optional[str] = None
     frames: list[str]
 
 
@@ -387,6 +487,14 @@ class RegisterRequest(BaseModel):
 def register_student(
     request: RegisterRequest
 ):
+
+    student_id = (
+        request.student_id
+        if request.student_id is not None
+        else request.studentId
+    )
+
+    student_name = request.name.strip() if request.name else ""
 
     real_count = 0
 
@@ -470,6 +578,14 @@ def register_student(
 
     embedding_bytes = embedding.tobytes()
 
+    if student_id is None or student_name == "":
+
+        return {
+            "status": "REGISTERED",
+            "message": "Face embedding generated",
+            "embedding": embedding.tolist()
+        }
+
     # ---------- DATABASE ---------- #
 
     connection = sqlite3.connect(DB_PATH)
@@ -488,7 +604,7 @@ def register_student(
         WHERE student_id = ?
 
         """,
-        (request.student_id,)
+        (student_id,)
     )
 
     existing_student = cursor.fetchone()
@@ -517,8 +633,8 @@ def register_student(
 
         """,
         (
-            request.student_id,
-            request.name,
+            student_id,
+            student_name,
             embedding_bytes
         )
     )
@@ -533,8 +649,8 @@ def register_student(
 
     return {
         "status": "REGISTERED",
-        "student_id":   request.student_id,
-        "name": request.name
+        "student_id": student_id,
+        "name": student_name
     }
 
 

@@ -21,7 +21,8 @@
     "next-themes": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "react-webcam": "latest",
+    "recharts": "^3.8.1",
+    "sonner": "^2.0.7",
     "tailwind-merge": "latest"
   },
   "devDependencies": {

@@ -2,6 +2,7 @@
 
 import { Download, Loader2, RotateCcw, Search } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -24,8 +25,10 @@ export function AttendanceClient() {
 
     try {
       setRecords(await getAttendance(filters));
+      toast.success("Attendance records loaded.");
     } catch {
       setError("Attendance records could not be loaded. Check the recognition API deployment.");
+      toast.error("Attendance records could not be loaded.");
     } finally {
       setLoading(false);
     }
@@ -49,7 +52,7 @@ export function AttendanceClient() {
         title="Attendance records"
       />
 
-      <Card className="glass-panel mb-6 border-primary/20">
+      <Card className="mb-6">
         <CardHeader>
           <CardTitle>Search attendance</CardTitle>
           <CardDescription>Filters are sent to the FastAPI backend and cached briefly through Redis when available.</CardDescription>
@@ -80,7 +83,13 @@ export function AttendanceClient() {
                 <RotateCcw className="h-4 w-4" />
                 Reset
               </Button>
-              <Button onClick={() => window.open(attendanceDownloadUrl(), "_blank")} variant="secondary">
+              <Button
+                onClick={() => {
+                  window.open(attendanceDownloadUrl(), "_blank");
+                  toast.success("Attendance CSV export opened.");
+                }}
+                variant="secondary"
+              >
                 <Download className="h-4 w-4" />
                 CSV
               </Button>
@@ -89,13 +98,13 @@ export function AttendanceClient() {
         </CardContent>
       </Card>
 
-      <Card className="glass-panel border-primary/20">
+      <Card>
         <CardHeader>
           <CardTitle>Records</CardTitle>
           <CardDescription>{records.length} attendance entries found.</CardDescription>
         </CardHeader>
         <CardContent>
-          {error ? <p className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{error}</p> : null}
+          {error ? <p className="mb-4 rounded-2xl border border-red-100 bg-red-50 p-4 text-sm font-medium text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-100">{error}</p> : null}
           <Table>
             <TableHeader>
               <TableRow>
@@ -108,7 +117,7 @@ export function AttendanceClient() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell className="text-muted-foreground" colSpan={4}>
+                  <TableCell className="text-slate-500 dark:text-slate-500" colSpan={4}>
                     Loading records...
                   </TableCell>
                 </TableRow>
@@ -123,7 +132,7 @@ export function AttendanceClient() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell className="text-muted-foreground" colSpan={4}>
+                  <TableCell className="text-slate-500 dark:text-slate-500" colSpan={4}>
                     No attendance records match the current filters.
                   </TableCell>
                 </TableRow>

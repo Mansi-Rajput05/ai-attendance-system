@@ -1,67 +1,24 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: 270 38% 98%;
-  --foreground: 262 28% 12%;
-  --card: 0 0% 100%;
-  --card-foreground: 262 28% 12%;
-  --primary: 267 84% 57%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 267 45% 93%;
-  --secondary-foreground: 267 58% 25%;
-  --muted: 267 28% 94%;
-  --muted-foreground: 263 12% 43%;
-  --accent: 270 72% 94%;
-  --accent-foreground: 267 64% 29%;
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 267 24% 87%;
-  --input: 267 24% 87%;
-  --ring: 267 84% 57%;
-  --radius: 0.85rem;
+  --background: #f8fafc;
+  --foreground: #0f172a;
 }
 
 .dark {
-  --background: 263 45% 7%;
-  --foreground: 267 36% 96%;
-  --card: 263 38% 10%;
-  --card-foreground: 267 36% 96%;
-  --primary: 268 92% 70%;
-  --primary-foreground: 264 48% 9%;
-  --secondary: 264 36% 18%;
-  --secondary-foreground: 267 36% 96%;
-  --muted: 264 30% 16%;
-  --muted-foreground: 267 18% 68%;
-  --accent: 264 38% 20%;
-  --accent-foreground: 267 36% 96%;
-  --destructive: 0 74% 57%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 264 28% 22%;
-  --input: 264 28% 22%;
-  --ring: 268 92% 70%;
-}
-
-* {
-  border-color: hsl(var(--border));
-}
-
-html {
-  scroll-behavior: smooth;
+  --background: #020617;
+  --foreground: #e5e7eb;
 }
 
 body {
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, hsl(var(--primary) / 0.16), transparent 34rem),
-    linear-gradient(135deg, hsl(var(--background)), hsl(var(--secondary) / 0.55));
-  color: hsl(var(--foreground));
+  background: var(--background);
+  color: var(--foreground);
 }
 
-::selection {
-  background: hsl(var(--primary) / 0.28);
-}
-
-.glass-panel {
-  background: hsl(var(--card) / 0.82);
-  backdrop-filter: blur(18px);
+button,
+input {
+  font: inherit;
 }

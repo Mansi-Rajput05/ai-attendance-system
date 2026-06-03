@@ -2,16 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BrainCircuit, ClipboardList, Gauge, GraduationCap, UserPlus } from "lucide-react";
+import { Camera, ClipboardList, GraduationCap, UserPlus } from "lucide-react";
 
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 const navigation = [
-  { href: "/", label: "Dashboard", icon: Gauge },
-  { href: "/register", label: "Register", icon: UserPlus },
-  { href: "/attendance", label: "Attendance", icon: ClipboardList },
+  { href: "/", label: "Attendance", icon: Camera },
+  { href: "/register", label: "Register New Student", icon: UserPlus },
+  { href: "/attendance", label: "Logs", icon: ClipboardList },
   { href: "/students", label: "Students", icon: GraduationCap },
 ];
 
@@ -19,51 +18,46 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div className="min-h-screen">
-      <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between gap-4">
-            <Link className="flex items-center gap-3" href="/">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-glow">
-                <BrainCircuit className="h-6 w-6" />
-              </span>
-              <span className="min-w-0">
-                <span className="block text-base font-semibold tracking-tight sm:text-lg">AI Attendance</span>
-                <span className="block text-xs text-muted-foreground">Face recognition control center</span>
-              </span>
-            </Link>
-            <div className="flex items-center gap-2">
-              <Badge className="hidden border-primary/30 bg-primary/10 text-primary sm:inline-flex" variant="outline">
-                Railway API Ready
-              </Badge>
-              <ThemeToggle />
-            </div>
-          </div>
-          <nav className="flex gap-2 overflow-x-auto pb-1">
-            {navigation.map((item) => {
-              const Icon = item.icon;
-              const active = pathname === item.href;
+    <div className="min-h-screen bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-slate-100">
+      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/90">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <Link className="flex items-center gap-3" href="/">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-950">
+              <Camera className="h-5 w-5" />
+            </span>
+            <span>
+              <span className="block text-base font-black tracking-tight">FaceTrace AI</span>
+              <span className="block text-xs font-medium text-slate-500 dark:text-slate-400">AI face recognition attendance</span>
+            </span>
+          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <nav className="flex flex-wrap gap-2">
+              {navigation.map((item) => {
+                const Icon = item.icon;
+                const active = pathname === item.href;
 
-              return (
-                <Link
-                  className={cn(
-                    "flex min-w-fit items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors",
-                    active
-                      ? "border-primary/40 bg-primary text-primary-foreground shadow-glow"
-                      : "bg-card/70 text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                  )}
-                  href={item.href}
-                  key={item.href}
-                >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
+                return (
+                  <Link
+                    className={cn(
+                      "inline-flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-semibold transition",
+                      active
+                        ? "bg-slate-100 text-slate-950 dark:bg-slate-900 dark:text-white"
+                        : "text-slate-700 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white",
+                    )}
+                    href={item.href}
+                    key={item.href}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">{children}</main>
+      <main className="mx-auto w-full max-w-6xl px-4 py-8">{children}</main>
     </div>
   );
 }

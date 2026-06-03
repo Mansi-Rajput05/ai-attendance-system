@@ -12,6 +12,7 @@ node_modules/
 *.tsbuildinfo
 out/
 dist/
+ai-face-recog/
 
 attendance.db
 *.db

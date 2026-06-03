@@ -9,7 +9,7 @@ export default function NotFound() {
       <Card className="max-w-xl text-center">
         <CardHeader>
           <CardTitle>Page not found</CardTitle>
-          <CardDescription>The route you opened is not part of the attendance workspace.</CardDescription>
+          <CardDescription>The route you opened is not part of FaceTrace AI.</CardDescription>
         </CardHeader>
         <CardContent>
           <Link className={buttonVariants()} href="/">
