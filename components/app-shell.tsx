@@ -2,9 +2,10 @@
 
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Camera, ClipboardList, GraduationCap, Info, Menu, ScanFace, UserPlus, X } from "lucide-react";
+import { Camera, ClipboardList, GraduationCap, Info, Menu, UserPlus, X } from "lucide-react";
 
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
@@ -52,9 +53,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="mx-auto flex max-w-6xl flex-col px-4 py-3">
           <div className="flex items-center justify-between gap-3">
             <Link className="flex min-w-0 items-center gap-3" href="/">
-              <span className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-slate-950 via-blue-900 to-cyan-600 text-white shadow-sm shadow-cyan-900/20 dark:from-cyan-400 dark:via-blue-500 dark:to-slate-950">
-                <ScanFace className="h-5 w-5" />
-                <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-emerald-300" />
+              <span className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-cyan-100 bg-cyan-500 shadow-sm shadow-cyan-900/20 dark:border-cyan-900/60">
+                <Image alt="FaceMark AI logo" className="h-full w-full object-cover" height={44} priority src="/logo.jpg" width={44} />
               </span>
               <span className="min-w-0">
                 <span className="block truncate text-base font-black tracking-tight">FaceMark AI</span>
@@ -87,7 +87,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
       <footer className="border-t border-slate-200 bg-white/80 dark:border-slate-800 dark:bg-slate-950/80">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-6 text-sm text-slate-500 dark:text-slate-400 sm:flex-row sm:items-center sm:justify-between">
-          <span className="font-semibold text-slate-700 dark:text-slate-300">FaceMark AI</span>
+          <span className="inline-flex items-center gap-2 font-semibold text-slate-700 dark:text-slate-300">
+            <Image alt="FaceMark AI logo" className="h-6 w-6 rounded-lg object-cover" height={24} src="/logo.jpg" width={24} />
+            FaceMark AI
+          </span>
           <span>@2026 design and developed by Mansi, Indian Institute of Technology Roorkee</span>
         </div>
       </footer>
