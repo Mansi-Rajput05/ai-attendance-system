@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional
 from fastapi import FastAPI
+import os
 import sqlite3
 from datetime import datetime
 from fastapi import UploadFile, File
@@ -8,6 +9,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from requests import request
 
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
 
 from recognition.embeddings import get_face_embedding
 
@@ -26,8 +31,11 @@ from database.paths import ANTI_SPOOF_MODEL_DIR, CSV_PATH, DB_PATH
 init_database()
 known_faces = load_known_faces()
 
-import os
 import torch
+
+torch.set_num_threads(
+    int(os.environ.get("TORCH_NUM_THREADS", "1"))
+)
 
 from src.anti_spoof_predict import AntiSpoofPredict
 from src.generate_patches import CropImage
@@ -496,8 +504,6 @@ def register_student(
 
     student_name = request.name.strip() if request.name else ""
 
-    real_count = 0
-
     decoded_frames = []
 
     # ---------- DECODE FRAMES ---------- #
@@ -529,23 +535,9 @@ def register_student(
                 frame
             )
 
-            # ---------- ANTI SPOOF ---------- #
-
-            if check_liveness(frame):
-
-                real_count += 1
-
         except Exception:
 
             continue
-
-    # ---------- FAKE FACE ---------- #
-
-    if real_count < 2:
-
-        return {
-            "status": "FAKE_FACE"
-        }
 
     # ---------- NO VALID FRAME ---------- #
 
@@ -557,7 +549,25 @@ def register_student(
 
     # ---------- MIDDLE FRAME ---------- #
 
-    middle_frame = decoded_frames[1]
+    middle_frame = decoded_frames[
+        len(decoded_frames) // 2
+    ]
+
+    # ---------- ANTI SPOOF ---------- #
+
+    try:
+
+        if not check_liveness(middle_frame):
+
+            return {
+                "status": "FAKE_FACE"
+            }
+
+    except Exception:
+
+        return {
+            "status": "NO_FACE_DETECTED"
+        }
 
     # ---------- EMBEDDING ---------- #
 
