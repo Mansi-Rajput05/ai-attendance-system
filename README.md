@@ -102,3 +102,4 @@ powershell -ExecutionPolicy Bypass -File .\run-server.ps1 -SkipInstall
 - The Railway backend uses pinned `opencv-python-headless` and a Dockerfile because server deployments do not provide OpenCV runtime libraries by default.
 - If Railway still reports `ImportError: libxcb.so.1`, confirm the Railway service root is `recognition-api/`, deploys the latest `main` commit, and rebuild with the build cache cleared.
 - InsightFace loads only detection and recognition modules on Railway to reduce memory use. If Railway logs show `Killed`, increase Railway memory or lower `INSIGHTFACE_DET_SIZE` to `256`.
+- The Docker image downloads the InsightFace model during build so the first live `/register` request does not spend time downloading `buffalo_l.zip`.

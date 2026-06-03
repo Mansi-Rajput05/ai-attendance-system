@@ -38,6 +38,8 @@ RUN python -m pip install --upgrade pip setuptools wheel \
     && pip install --force-reinstall --no-deps opencv-python-headless==4.10.0.84 \
     && python -c "import cv2; print('opencv', cv2.__version__)"
 
+RUN python -c "from insightface.app import FaceAnalysis; app = FaceAnalysis(name='buffalo_l', allowed_modules=['detection', 'recognition'], providers=['CPUExecutionProvider']); app.prepare(ctx_id=-1, det_size=(320, 320)); print('insightface model cached')"
+
 COPY . .
 
 CMD ["sh", "-c", "uvicorn api:app --host 0.0.0.0 --port ${PORT:-8080}"]
