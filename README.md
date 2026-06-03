@@ -49,6 +49,8 @@ npm run prisma:validate
 
 Deploy the `recognition-api/` folder as the Railway service root.
 
+Railway is configured to use `recognition-api/Dockerfile`. The image installs the Linux runtime libraries OpenCV needs, including `libxcb1`.
+
 Railway start command:
 
 ```bash
@@ -95,5 +97,5 @@ powershell -ExecutionPolicy Bypass -File .\run-server.ps1 -SkipInstall
 - Live recognition requests are not cached because they can mark attendance.
 - Student list, attendance records, and dashboard stats are cached briefly through Redis when `REDIS_URL` is available.
 - Prisma is pinned to `6.19.0` because direct MongoDB `DATABASE_URL` support is required for this project.
-- The Railway backend uses `opencv-python-headless` because server deployments do not provide GUI libraries such as `libxcb.so.1`.
-- If Railway still reports `ImportError: libxcb.so.1`, redeploy after the `recognition-api/nixpacks.toml` config is present and clear the Railway build cache if needed.
+- The Railway backend uses pinned `opencv-python-headless` and a Dockerfile because server deployments do not provide OpenCV runtime libraries by default.
+- If Railway still reports `ImportError: libxcb.so.1`, confirm the Railway service root is `recognition-api/`, deploys the latest `main` commit, and rebuild with the build cache cleared.
