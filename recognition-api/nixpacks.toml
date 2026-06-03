@@ -1,0 +1,24 @@
+[phases.setup]
+nixPkgs = [
+  "python311",
+  "gcc",
+  "glib",
+  "libGL",
+  "xorg.libICE",
+  "xorg.libSM",
+  "xorg.libX11",
+  "xorg.libXext",
+  "xorg.libXrender",
+  "xorg.libxcb"
+]
+nixLibs = [
+  "glib",
+  "libGL",
+  "stdenv.cc.cc.lib",
+  "xorg.libICE",
+  "xorg.libSM",
+  "xorg.libX11",
+  "xorg.libXext",
+  "xorg.libXrender",
+  "xorg.libxcb"
+]

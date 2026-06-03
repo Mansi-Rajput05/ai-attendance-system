@@ -96,3 +96,4 @@ powershell -ExecutionPolicy Bypass -File .\run-server.ps1 -SkipInstall
 - Student list, attendance records, and dashboard stats are cached briefly through Redis when `REDIS_URL` is available.
 - Prisma is pinned to `6.19.0` because direct MongoDB `DATABASE_URL` support is required for this project.
 - The Railway backend uses `opencv-python-headless` because server deployments do not provide GUI libraries such as `libxcb.so.1`.
+- If Railway still reports `ImportError: libxcb.so.1`, redeploy after the `recognition-api/nixpacks.toml` config is present and clear the Railway build cache if needed.
