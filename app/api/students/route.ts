@@ -12,6 +12,11 @@ type CreateStudentPayload = {
   frames?: string[];
 };
 
+type StudentApiRecord = {
+  studentId: string;
+  name: string;
+};
+
 export async function GET() {
   if (!isDatabaseConfigured()) {
     return databaseNotConfiguredResponse();
@@ -23,7 +28,7 @@ export async function GET() {
   });
 
   return NextResponse.json(
-    students.map((student) => ({
+    students.map((student: StudentApiRecord) => ({
       student_id: Number(student.studentId),
       name: student.name,
     })),

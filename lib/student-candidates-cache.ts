@@ -44,7 +44,7 @@ export async function getStudentCandidates() {
     .findMany({
       select: { studentId: true, name: true, embedding: true },
     })
-    .then((candidates) => {
+    .then((candidates: StudentCandidate[]) => {
       cache.candidates = candidates;
       cache.expiresAt = Date.now() + CACHE_TTL_MS;
       return candidates;

@@ -3,6 +3,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { databaseNotConfiguredResponse, isDatabaseConfigured } from "@/lib/api-response";
 import { prisma } from "@/lib/prisma";
 
+type AttendanceApiRecord = {
+  id: string;
+  studentId: string;
+  studentName: string;
+  date: string;
+  time: string;
+};
+
 export async function GET(request: NextRequest) {
   if (!isDatabaseConfigured()) {
     return databaseNotConfiguredResponse();
@@ -20,7 +28,7 @@ export async function GET(request: NextRequest) {
   });
 
   return NextResponse.json(
-    records.map((record) => ({
+    records.map((record: AttendanceApiRecord) => ({
       id: record.id,
       student_id: Number(record.studentId),
       name: record.studentName,
