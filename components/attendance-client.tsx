@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, Loader2, RotateCcw, Search } from "lucide-react";
+import { Download, Loader2, RotateCcw, Search, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -10,7 +10,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { attendanceDownloadUrl, getAttendance, type AttendanceRecord } from "@/lib/recognition-api";
+import {
+  attendanceDownloadUrl,
+  clearAttendanceLogs,
+  deleteAttendanceLog,
+  getAttendance,
+  type AttendanceRecord,
+} from "@/lib/recognition-api";
 
 export function AttendanceClient() {
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
@@ -18,6 +24,8 @@ export function AttendanceClient() {
   const [date, setDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [clearing, setClearing] = useState(false);
 
   async function fetchAttendance(filters = { studentId, date }) {
     setLoading(true);
@@ -38,6 +46,52 @@ export function AttendanceClient() {
     setStudentId("");
     setDate("");
     void fetchAttendance({ studentId: "", date: "" });
+  }
+
+  async function removeLog(record: AttendanceRecord) {
+    if (!record.id) {
+      toast.error("This log cannot be deleted because it has no record ID.");
+      return;
+    }
+
+    const confirmed = window.confirm(`Delete attendance log for ${record.name} on ${record.date} at ${record.time}?`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingId(record.id);
+
+    try {
+      await deleteAttendanceLog(record.id);
+      toast.success("Attendance log deleted.");
+      await fetchAttendance();
+    } catch {
+      toast.error("Attendance log delete failed.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  async function clearLogs() {
+    const scope = studentId || date ? "the current filtered logs" : "all attendance logs";
+    const confirmed = window.confirm(`Clear ${scope}? This cannot be undone.`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    setClearing(true);
+
+    try {
+      const result = await clearAttendanceLogs({ studentId, date });
+      toast.success(`${result.count} attendance log${result.count === 1 ? "" : "s"} cleared.`);
+      await fetchAttendance();
+    } catch {
+      toast.error("Attendance logs could not be cleared.");
+    } finally {
+      setClearing(false);
+    }
   }
 
   useEffect(() => {
@@ -93,6 +147,10 @@ export function AttendanceClient() {
                 <Download className="h-4 w-4" />
                 CSV
               </Button>
+              <Button disabled={loading || clearing || records.length === 0} onClick={() => void clearLogs()} variant="destructive">
+                {clearing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                Clear Logs
+              </Button>
             </div>
           </div>
         </CardContent>
@@ -112,12 +170,13 @@ export function AttendanceClient() {
                 <TableHead>Name</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Time</TableHead>
+                <TableHead className="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell className="text-slate-500 dark:text-slate-500" colSpan={4}>
+                  <TableCell className="text-slate-500 dark:text-slate-500" colSpan={5}>
                     Loading records...
                   </TableCell>
                 </TableRow>
@@ -128,11 +187,22 @@ export function AttendanceClient() {
                     <TableCell>{record.name}</TableCell>
                     <TableCell>{record.date}</TableCell>
                     <TableCell>{record.time}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        disabled={!record.id || deletingId === record.id}
+                        onClick={() => void removeLog(record)}
+                        size="sm"
+                        variant="destructive"
+                      >
+                        {deletingId === record.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        Delete
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell className="text-slate-500 dark:text-slate-500" colSpan={4}>
+                  <TableCell className="text-slate-500 dark:text-slate-500" colSpan={5}>
                     No attendance records match the current filters.
                   </TableCell>
                 </TableRow>

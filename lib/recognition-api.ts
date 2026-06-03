@@ -4,6 +4,7 @@ export type Student = {
 };
 
 export type AttendanceRecord = {
+  id?: string;
   student_id: number;
   name: string;
   date: string;
@@ -102,6 +103,30 @@ export function getAttendance(filters: { studentId?: string; date?: string }) {
   const query = params.toString();
 
   return apiRequest<AttendanceRecord[]>(`/api/attendance${query ? `?${query}` : ""}`);
+}
+
+export function deleteAttendanceLog(id: string) {
+  return apiRequest<{ status: string }>(`/api/attendance?id=${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+}
+
+export function clearAttendanceLogs(filters: { studentId?: string; date?: string }) {
+  const params = new URLSearchParams();
+
+  if (filters.studentId) {
+    params.set("student_id", filters.studentId);
+  }
+
+  if (filters.date) {
+    params.set("date", filters.date);
+  }
+
+  const query = params.toString();
+
+  return apiRequest<{ status: string; count: number }>(`/api/attendance${query ? `?${query}` : ""}`, {
+    method: "DELETE",
+  });
 }
 
 export function attendanceDownloadUrl() {
