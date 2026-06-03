@@ -26,6 +26,16 @@ Required Vercel environment variables:
 - `DATABASE_URL` - MongoDB connection string for Prisma.
 - `REDIS_URL` - optional Redis connection string for cached read endpoints.
 
+For your current deployment, set these in Vercel:
+
+```env
+RECOGNITION_API_URL=https://ai-attendance-system-production.up.railway.app
+NEXT_PUBLIC_RECOGNITION_API_URL=https://ai-attendance-system-production.up.railway.app
+DATABASE_URL=your_mongodb_connection_string
+```
+
+Do not add `:8080` to the Railway public URL in Vercel. Railway maps the public HTTPS URL to the internal `$PORT` automatically.
+
 Build checks:
 
 ```bash
@@ -47,7 +57,17 @@ uvicorn api:app --host 0.0.0.0 --port $PORT
 
 Recommended Railway environment variables:
 
-- `FRONTEND_URL` - deployed Vercel URL, for example `https://your-app.vercel.app`.
+- `FRONTEND_URL` - deployed Vercel URL, for example `https://facemark-ai.vercel.app`.
+- `NIXPACKS_PYTHON_VERSION` - set to `3.11` for better ML dependency compatibility.
+
+For your current deployment, set these in Railway:
+
+```env
+FRONTEND_URL=https://facemark-ai.vercel.app
+NIXPACKS_PYTHON_VERSION=3.11
+```
+
+Railway provides `PORT` automatically. Keep the start command using `$PORT`.
 
 Local backend run:
 
@@ -75,3 +95,4 @@ powershell -ExecutionPolicy Bypass -File .\run-server.ps1 -SkipInstall
 - Live recognition requests are not cached because they can mark attendance.
 - Student list, attendance records, and dashboard stats are cached briefly through Redis when `REDIS_URL` is available.
 - Prisma is pinned to `6.19.0` because direct MongoDB `DATABASE_URL` support is required for this project.
+- The Railway backend uses `opencv-python-headless` because server deployments do not provide GUI libraries such as `libxcb.so.1`.
