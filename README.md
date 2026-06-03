@@ -51,11 +51,13 @@ Deploy the `recognition-api/` folder as the Railway service root.
 
 Railway is configured to use `recognition-api/Dockerfile`. The image installs the Linux runtime libraries OpenCV needs, including `libxcb1`.
 
-Railway start command:
+Dockerfile start command:
 
 ```bash
-uvicorn api:app --host 0.0.0.0 --port $PORT
+uvicorn api:app --host 0.0.0.0 --port ${PORT:-8080}
 ```
+
+Do not set a Railway UI start command to `uvicorn api:app --host 0.0.0.0 --port $PORT`. In Docker deployments Railway can pass `$PORT` literally. Leave the Railway UI start command empty so the Dockerfile `CMD` is used.
 
 Recommended Railway environment variables:
 
@@ -69,7 +71,7 @@ FRONTEND_URL=https://facemark-ai.vercel.app
 NIXPACKS_PYTHON_VERSION=3.11
 ```
 
-Railway provides `PORT` automatically. Keep the start command using `$PORT`.
+Railway provides `PORT` automatically. The Dockerfile expands it through `sh -c` and falls back to `8080` locally.
 
 Local backend run:
 
