@@ -6,6 +6,7 @@ import numpy as np
 from src.anti_spoof_predict import AntiSpoofPredict
 from src.generate_patches import CropImage
 from src.utility import parse_model_name
+from database.paths import ANTI_SPOOF_MODEL_DIR
 
 from recognition.recognize import (
     load_known_faces,
@@ -18,7 +19,7 @@ known_faces = load_known_faces()
 
 # ---------------- LOAD ANTI SPOOF MODELS ---------------- #
 
-model_dir = "resources/anti_spoof_models"
+model_dir = ANTI_SPOOF_MODEL_DIR
 
 model_test = AntiSpoofPredict(0)
 

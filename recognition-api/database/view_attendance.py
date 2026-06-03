@@ -1,8 +1,8 @@
 import sqlite3
 
-connection = sqlite3.connect(
-    "database/attendance.db"
-)
+from database.paths import DB_PATH
+
+connection = sqlite3.connect(DB_PATH)
 
 cursor = connection.cursor()
 

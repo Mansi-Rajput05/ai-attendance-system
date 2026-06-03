@@ -1,13 +1,12 @@
 import sqlite3
 from datetime import datetime
 from database.export_csv import export_csv
+from database.paths import DB_PATH
 
 
 def mark_attendance(student_id):
 
-    connection = sqlite3.connect(
-        "database/attendance.db"
-    )
+    connection = sqlite3.connect(DB_PATH)
 
     cursor = connection.cursor()
 

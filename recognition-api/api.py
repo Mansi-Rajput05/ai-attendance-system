@@ -20,7 +20,10 @@ from recognition.recognize import (
     load_known_faces,
     recognize_face
 )
+from database.database import init_database
+from database.paths import ANTI_SPOOF_MODEL_DIR, CSV_PATH, DB_PATH
 
+init_database()
 known_faces = load_known_faces()
 
 import os
@@ -30,7 +33,7 @@ from src.anti_spoof_predict import AntiSpoofPredict
 from src.generate_patches import CropImage
 from src.utility import parse_model_name
 
-model_dir = "resources/anti_spoof_models"
+model_dir = ANTI_SPOOF_MODEL_DIR
 
 model_test = AntiSpoofPredict(0)
 
@@ -105,9 +108,7 @@ def home():
 @app.get("/students")
 def get_students():
 
-    connection = sqlite3.connect(
-        "database/attendance.db"
-    )
+    connection = sqlite3.connect(DB_PATH)
 
     cursor = connection.cursor()
 
@@ -145,9 +146,7 @@ def get_attendance(
 
 ):
 
-    connection = sqlite3.connect(
-        "database/attendance.db"
-    )
+    connection = sqlite3.connect(DB_PATH)
 
     cursor = connection.cursor()
 
@@ -227,9 +226,7 @@ def get_attendance(
 @app.get("/student/{student_id}")
 def get_student(student_id: int):
 
-    connection = sqlite3.connect(
-        "database/attendance.db"
-    )
+    connection = sqlite3.connect(DB_PATH)
 
     cursor = connection.cursor()
 
@@ -475,9 +472,7 @@ def register_student(
 
     # ---------- DATABASE ---------- #
 
-    connection = sqlite3.connect(
-        "database/attendance.db"
-    )
+    connection = sqlite3.connect(DB_PATH)
 
     cursor = connection.cursor()
 
@@ -547,9 +542,7 @@ def register_student(
 @app.delete("/students/{student_id}")
 def delete_student(student_id: int):
 
-    connection = sqlite3.connect(
-        "database/attendance.db"
-    )
+    connection = sqlite3.connect(DB_PATH)
 
     cursor = connection.cursor()
 
@@ -576,7 +569,7 @@ def delete_student(student_id: int):
 def download_attendance():
 
     return FileResponse(
-        path="database/attendance_report.csv",
+        path=CSV_PATH,
         filename="attendance_report.csv",
         media_type="text/csv"
     )
@@ -585,9 +578,7 @@ def download_attendance():
 @app.get("/dashboard-stats")
 def dashboard_stats():
 
-    connection = sqlite3.connect(
-        "database/attendance.db"
-    )
+    connection = sqlite3.connect(DB_PATH)
 
     cursor = connection.cursor()
 
@@ -644,9 +635,7 @@ def update_student(
     request: UpdateStudentRequest
 ):
 
-    connection = sqlite3.connect(
-        "database/attendance.db"
-    )
+    connection = sqlite3.connect(DB_PATH)
 
     cursor = connection.cursor()
 

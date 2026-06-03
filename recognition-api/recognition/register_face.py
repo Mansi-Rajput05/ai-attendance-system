@@ -9,12 +9,11 @@ from src.generate_patches import CropImage
 from src.utility import parse_model_name
 
 from recognition.embeddings import get_face_embedding
+from database.paths import ANTI_SPOOF_MODEL_DIR, DB_PATH
 
 # ---------------- DATABASE ---------------- #
 
-connection = sqlite3.connect(
-    "database/attendance.db"
-)
+connection = sqlite3.connect(DB_PATH)
 
 cursor = connection.cursor()
 
@@ -48,7 +47,7 @@ while True:
 
 # ---------------- LOAD ANTI SPOOF ---------------- #
 
-model_dir = "resources/anti_spoof_models"
+model_dir = ANTI_SPOOF_MODEL_DIR
 
 model_test = AntiSpoofPredict(0)
 

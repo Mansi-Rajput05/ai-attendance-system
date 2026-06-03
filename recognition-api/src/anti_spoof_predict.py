@@ -12,6 +12,8 @@ import torch
 import numpy as np
 import torch.nn.functional as F
 
+from database.paths import DETECTION_DEPLOY_PATH, DETECTION_MODEL_PATH
+
 
 from src.model_lib.MiniFASNet import MiniFASNetV1, MiniFASNetV2,MiniFASNetV1SE,MiniFASNetV2SE
 from src.data_io import transform as trans
@@ -27,8 +29,8 @@ MODEL_MAPPING = {
 
 class Detection:
     def __init__(self):
-        caffemodel = "./resources/detection_model/Widerface-RetinaFace.caffemodel"
-        deploy = "./resources/detection_model/deploy.prototxt"
+        caffemodel = str(DETECTION_MODEL_PATH)
+        deploy = str(DETECTION_DEPLOY_PATH)
         self.detector = cv2.dnn.readNetFromCaffe(deploy, caffemodel)
         self.detector_confidence = 0.6
 
@@ -90,7 +92,6 @@ class AntiSpoofPredict(Detection):
             result = self.model.forward(img)
             result = F.softmax(result).cpu().numpy()
         return result
-
 
 
 

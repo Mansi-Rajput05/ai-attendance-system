@@ -3,15 +3,14 @@ import numpy as np
 
 from recognition.embeddings import get_face_embedding
 from database.attendance_logger import mark_attendance
+from database.paths import DB_PATH
 
 SIMILARITY_THRESHOLD = 0.7
 
 
 def load_known_faces():
 
-    connection = sqlite3.connect(
-        "database/attendance.db"
-    )
+    connection = sqlite3.connect(DB_PATH)
 
     cursor = connection.cursor()
 
@@ -50,13 +49,14 @@ def load_known_faces():
 def recognize_face(frame, known_faces):
 
     embedding = get_face_embedding(frame)
-    embedding = embedding / np.linalg.norm(embedding)
     
     recognized_name = "Unknown"
     recognized_id = "N/A"
     attendance_status = ""
 
     if embedding is not None:
+
+        embedding = embedding / np.linalg.norm(embedding)
 
         best_similarity = 999
 

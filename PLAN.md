@@ -30,6 +30,7 @@
 - Keep the recognition API separated for Railway deployment.
 - Configure the Next.js app to call the Railway API through `NEXT_PUBLIC_RECOGNITION_API_URL`.
 - Add backend deployment metadata and dependency files where needed.
+- Move FastAPI code into `recognition-api/` so Railway can deploy it as a separate service root.
 
 ## Phase 6: MongoDB + Prisma - Done
 

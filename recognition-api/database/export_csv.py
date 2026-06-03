@@ -1,11 +1,11 @@
 import sqlite3
 import csv
 
+from database.paths import CSV_PATH, DB_PATH
+
 def export_csv():
 
-    connection = sqlite3.connect(
-        "database/attendance.db"
-    )
+    connection = sqlite3.connect(DB_PATH)
 
     cursor = connection.cursor()
 
@@ -30,7 +30,7 @@ def export_csv():
     records = cursor.fetchall()
 
     with open(
-        "database/attendance_report.csv",
+        CSV_PATH,
         mode="w",
         newline=""
     ) as file:
