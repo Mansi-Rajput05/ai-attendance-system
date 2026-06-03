@@ -70,11 +70,24 @@ def check_liveness(frame):
 
 app = FastAPI()
 
+allowed_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+if os.environ.get("FRONTEND_URL"):
+    allowed_origins.append(
+        os.environ["FRONTEND_URL"]
+    )
+
+if os.environ.get("VERCEL_URL"):
+    allowed_origins.append(
+        f"https://{os.environ['VERCEL_URL']}"
+    )
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173"
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

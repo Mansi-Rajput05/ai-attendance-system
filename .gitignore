@@ -4,6 +4,14 @@ __pycache__/
 
 venv/
 .env/
+.env
+.env.local
+.env.*.local
+node_modules/
+.next/
+*.tsbuildinfo
+out/
+dist/
 
 attendance.db
 *.db

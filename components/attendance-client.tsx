@@ -1,0 +1,137 @@
+"use client";
+
+import { Download, Loader2, RotateCcw, Search } from "lucide-react";
+import { useEffect, useState } from "react";
+
+import { PageHeader } from "@/components/page-header";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { attendanceDownloadUrl, getAttendance, type AttendanceRecord } from "@/lib/recognition-api";
+
+export function AttendanceClient() {
+  const [records, setRecords] = useState<AttendanceRecord[]>([]);
+  const [studentId, setStudentId] = useState("");
+  const [date, setDate] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  async function fetchAttendance(filters = { studentId, date }) {
+    setLoading(true);
+    setError("");
+
+    try {
+      setRecords(await getAttendance(filters));
+    } catch {
+      setError("Attendance records could not be loaded. Check the recognition API deployment.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function resetFilters() {
+    setStudentId("");
+    setDate("");
+    void fetchAttendance({ studentId: "", date: "" });
+  }
+
+  useEffect(() => {
+    void fetchAttendance({ studentId: "", date: "" });
+  }, []);
+
+  return (
+    <div>
+      <PageHeader
+        description="Search attendance by student or date, review records in a responsive table, and download the backend CSV export."
+        eyebrow="Attendance ledger"
+        title="Attendance records"
+      />
+
+      <Card className="glass-panel mb-6 border-primary/20">
+        <CardHeader>
+          <CardTitle>Search attendance</CardTitle>
+          <CardDescription>Filters are sent to the FastAPI backend and cached briefly through Redis when available.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
+            <div className="space-y-2">
+              <Label htmlFor="attendance-student-id">Student ID</Label>
+              <Input
+                id="attendance-student-id"
+                inputMode="numeric"
+                placeholder="Search by ID"
+                type="number"
+                value={studentId}
+                onChange={(event) => setStudentId(event.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="attendance-date">Date</Label>
+              <Input id="attendance-date" type="date" value={date} onChange={(event) => setDate(event.target.value)} />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button disabled={loading} onClick={() => void fetchAttendance()}>
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                Search
+              </Button>
+              <Button disabled={loading} onClick={resetFilters} variant="outline">
+                <RotateCcw className="h-4 w-4" />
+                Reset
+              </Button>
+              <Button onClick={() => window.open(attendanceDownloadUrl(), "_blank")} variant="secondary">
+                <Download className="h-4 w-4" />
+                CSV
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="glass-panel border-primary/20">
+        <CardHeader>
+          <CardTitle>Records</CardTitle>
+          <CardDescription>{records.length} attendance entries found.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {error ? <p className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{error}</p> : null}
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Student ID</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Time</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell className="text-muted-foreground" colSpan={4}>
+                    Loading records...
+                  </TableCell>
+                </TableRow>
+              ) : records.length > 0 ? (
+                records.map((record, index) => (
+                  <TableRow key={`${record.student_id}-${record.date}-${record.time}-${index}`}>
+                    <TableCell className="font-medium">{record.student_id}</TableCell>
+                    <TableCell>{record.name}</TableCell>
+                    <TableCell>{record.date}</TableCell>
+                    <TableCell>{record.time}</TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell className="text-muted-foreground" colSpan={4}>
+                    No attendance records match the current filters.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

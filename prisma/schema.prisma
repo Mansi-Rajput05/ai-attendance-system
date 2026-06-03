@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Student {
+  id          String             @id @default(auto()) @map("_id") @db.ObjectId
+  studentId   Int                @unique
+  name        String
+  embedding   Bytes?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  attendance  AttendanceRecord[]
+  recognitions RecognitionEvent[]
+
+  @@map("students")
+}
+
+model AttendanceRecord {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  studentId Int
+  name      String
+  date      String
+  time      String
+  createdAt DateTime @default(now())
+  student   Student? @relation(fields: [studentId], references: [studentId])
+
+  @@index([studentId, date])
+  @@map("attendance_records")
+}
+
+model RecognitionEvent {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  status           String
+  studentId        Int?
+  name             String?
+  attendanceStatus String?
+  source           String   @default("next-app")
+  createdAt        DateTime @default(now())
+  student          Student? @relation(fields: [studentId], references: [studentId])
+
+  @@index([status, createdAt])
+  @@index([studentId])
+  @@map("recognition_events")
+}
+
+model AppAuditLog {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  action    String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([action, createdAt])
+  @@map("app_audit_logs")
+}
