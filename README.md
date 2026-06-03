@@ -1,4 +1,4 @@
-# FaceTrace AI
+# FaceMark AI
 
 Modern AI face recognition attendance system split into a Next.js App Router frontend and a FastAPI recognition backend.
 

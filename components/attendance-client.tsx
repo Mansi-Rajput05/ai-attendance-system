@@ -147,7 +147,7 @@ export function AttendanceClient() {
                 <Download className="h-4 w-4" />
                 CSV
               </Button>
-              <Button disabled={loading || clearing || records.length === 0} onClick={() => void clearLogs()} variant="destructive">
+              <Button disabled={loading || clearing || records.length === 0} onClick={() => void clearLogs()} variant="danger">
                 {clearing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                 Clear Logs
               </Button>
@@ -192,7 +192,7 @@ export function AttendanceClient() {
                         disabled={!record.id || deletingId === record.id}
                         onClick={() => void removeLog(record)}
                         size="sm"
-                        variant="destructive"
+                        variant="danger"
                       >
                         {deletingId === record.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                         Delete

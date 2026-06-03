@@ -232,7 +232,7 @@ export function StudentsClient() {
                     <TableCell className="text-right">
                       {deletingId === student.student_id ? (
                         <div className="flex flex-wrap justify-end gap-2">
-                          <Button size="sm" variant="destructive" onClick={() => void confirmDelete(student.student_id)}>
+                          <Button size="sm" variant="danger" onClick={() => void confirmDelete(student.student_id)}>
                             Confirm delete
                           </Button>
                           <Button size="sm" variant="outline" onClick={() => setDeletingId(null)}>
@@ -260,7 +260,7 @@ export function StudentsClient() {
                             <Pencil className="h-4 w-4" />
                             Edit
                           </Button>
-                          <Button size="sm" variant="destructive" onClick={() => setDeletingId(student.student_id)}>
+                          <Button size="sm" variant="danger" onClick={() => setDeletingId(student.student_id)}>
                             <Trash2 className="h-4 w-4" />
                             Delete
                           </Button>

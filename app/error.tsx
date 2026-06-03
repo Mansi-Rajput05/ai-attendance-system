@@ -14,7 +14,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
             <AlertTriangle className="h-6 w-6" />
           </div>
           <CardTitle>Something went wrong</CardTitle>
-          <CardDescription>{error.message || "FaceTrace AI hit an unexpected error."}</CardDescription>
+          <CardDescription>{error.message || "FaceMark AI hit an unexpected error."}</CardDescription>
         </CardHeader>
         <CardContent>
           <Button onClick={reset}>Try again</Button>

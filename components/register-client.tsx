@@ -163,7 +163,7 @@ export function RegisterClient() {
                       <td className="px-5 py-4 text-right">
                         <Button
                           className="h-9 gap-2 px-3"
-                          variant="destructive"
+                          variant="danger"
                           onClick={() => void removeStudent(student)}
                           disabled={deletingId === student.student_id}
                         >

@@ -10,8 +10,11 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "FaceTrace AI",
+  title: "FaceMark AI",
   description: "Modern AI face recognition attendance dashboard powered by Next.js and FastAPI.",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
