@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   title: "FaceMark AI",
   description: "Modern AI face recognition attendance dashboard powered by Next.js and FastAPI.",
   icons: {
-    icon: "/icon.svg",
+    icon: "/image.png",
   },
 };
 
